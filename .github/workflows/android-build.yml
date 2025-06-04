@@ -19,37 +19,49 @@ jobs:
         node-version: '18'
         cache: 'npm'
     
-    - name: Setup JDK 17 (Fixing the JDK version issue)
+    - name: Setup JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
     
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-      with:
-        api-level: 33
-        build-tools: 33.0.0
-        accept-android-sdk-licenses: true
-    
     - name: Install dependencies
       run: npm install
     
+    - name: Manual Android SDK Setup (bypassing problematic action)
+      run: |
+        # Set environment variables
+        export ANDROID_HOME=/usr/local/lib/android/sdk
+        export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+        export PATH=$PATH:$ANDROID_HOME/platform-tools
+        echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+        echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+        echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+        
+        # Accept licenses with JDK version check skip
+        export SKIP_JDK_VERSION_CHECK=true
+        yes | sdkmanager --licenses || true
+        
+        # Install required SDK components
+        sdkmanager "platforms;android-33" "build-tools;33.0.0" "platform-tools"
+    
     - name: Create local.properties
-      run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+      run: |
+        echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+        cat android/local.properties
     
     - name: Make gradlew executable
       run: chmod +x android/gradlew
     
-    - name: Clean build
-      run: cd android && ./gradlew clean
-    
     - name: Build Debug APK
-      run: cd android && ./gradlew assembleDebug
+      run: |
+        cd android
+        export SKIP_JDK_VERSION_CHECK=true
+        ./gradlew assembleDebug --stacktrace
     
-    - name: Upload APK as artifact
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: MoodTrackerPro-Debug-APK
+        name: MoodTrackerPro-APK
         path: android/app/build/outputs/apk/debug/app-debug.apk
         retention-days: 30
