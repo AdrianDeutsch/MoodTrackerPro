@@ -19,7 +19,7 @@ jobs:
         node-version: '18'
         cache: 'npm'
     
-    - name: Setup JDK 17
+    - name: Setup JDK 17 (Fixing the JDK version issue)
       uses: actions/setup-java@v4
       with:
         java-version: '17'
@@ -30,16 +30,13 @@ jobs:
       with:
         api-level: 33
         build-tools: 33.0.0
-        cmake: 3.22.1
-        ndk: 25.1.8937393
+        accept-android-sdk-licenses: true
     
     - name: Install dependencies
       run: npm install
     
     - name: Create local.properties
-      run: |
-        echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-        echo "ndk.dir=$ANDROID_HOME/ndk/25.1.8937393" >> android/local.properties
+      run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
     
     - name: Make gradlew executable
       run: chmod +x android/gradlew
